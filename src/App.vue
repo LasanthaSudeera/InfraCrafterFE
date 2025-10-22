@@ -91,11 +91,34 @@ const onDrop = (position) => {
   if (parent) {
     newNode.parentNode = parent.id
     newNode.extent = 'parent'
-    // Adjust position to be relative to parent
-    newNode.position = {
-      x: position.x - parent.position.x,
-      y: position.y - parent.position.y
+    
+    // Helper function to get absolute position recursively
+    const getAbsolutePosition = (node) => {
+      let x = node.position.x
+      let y = node.position.y
+      
+      if (node.parentNode) {
+        const parentNode = nodes.value.find(n => n.id === node.parentNode)
+        if (parentNode) {
+          const parentPos = getAbsolutePosition(parentNode)
+          x += parentPos.x
+          y += parentPos.y
+        }
+      }
+      
+      return { x, y }
     }
+    
+    // Get parent's absolute position
+    const parentAbsPos = getAbsolutePosition(parent)
+    
+    // Adjust position to be relative to parent's absolute position
+    newNode.position = {
+      x: position.x - parentAbsPos.x,
+      y: position.y - parentAbsPos.y
+    }
+    
+    console.log('Parent absolute pos:', parentAbsPos, 'New node relative pos:', newNode.position)
   }
 
   nodes.value.push(newNode)
@@ -144,7 +167,11 @@ const getDefaultHeight = (type) => {
 
 // Find parent node based on position and type rules
 const findParentNode = (position, type) => {
-  console.log('findParentNode called:', { position, type, totalNodes: nodes.value.length })
+  console.log('=== findParentNode called ===')
+  console.log('Looking for parent for type:', type)
+  console.log('Drop position:', position)
+  console.log('Total nodes:', nodes.value.length)
+  console.log('All nodes:', nodes.value.map(n => ({ id: n.id, type: n.type, label: n.data.label, pos: n.position, parent: n.parentNode })))
   
   // Define containment rules - match draggedType values (before lowercasing)
   const rules = {
@@ -157,10 +184,30 @@ const findParentNode = (position, type) => {
   }
 
   const allowedParents = rules[type]
-  console.log('Allowed parents for', type, ':', allowedParents)
-  if (!allowedParents) return null
+  console.log('Allowed parent types for', type, ':', allowedParents)
+  if (!allowedParents) {
+    console.log('No parent needed for', type)
+    return null
+  }
 
-  // Check nodes in reverse order (top nodes first)
+  // Helper function to get absolute position recursively
+  const getAbsolutePosition = (node) => {
+    let x = node.position.x
+    let y = node.position.y
+    
+    if (node.parentNode) {
+      const parent = nodes.value.find(n => n.id === node.parentNode)
+      if (parent) {
+        const parentPos = getAbsolutePosition(parent)
+        x += parentPos.x
+        y += parentPos.y
+      }
+    }
+    
+    return { x, y }
+  }
+
+  // Check nodes in reverse order (most recently added first)
   for (let i = nodes.value.length - 1; i >= 0; i--) {
     const node = nodes.value[i]
     // Use node.type instead of node.data.label for comparison
@@ -173,18 +220,23 @@ const findParentNode = (position, type) => {
     const nodeWidth = node.style?.width ? parseInt(node.style.width) : getDefaultWidth(node.data.label)
     const nodeHeight = node.style?.height ? parseInt(node.style.height) : getDefaultHeight(node.data.label)
     
+    // Get absolute position (nodes with parents have relative positions)
+    const absolutePos = getAbsolutePosition(node)
+    
     console.log('Checking node:', node.type, node.data.label, {
-      nodePos: node.position,
+      relativePos: node.position,
+      absolutePos,
       nodeWidth,
       nodeHeight,
-      dropPos: position
+      dropPos: position,
+      hasParent: !!node.parentNode
     })
     
     if (
-      position.x >= node.position.x &&
-      position.x <= node.position.x + nodeWidth &&
-      position.y >= node.position.y &&
-      position.y <= node.position.y + nodeHeight
+      position.x >= absolutePos.x &&
+      position.x <= absolutePos.x + nodeWidth &&
+      position.y >= absolutePos.y &&
+      position.y <= absolutePos.y + nodeHeight
     ) {
       console.log('✓ Found parent:', node.type, node.data.label)
       return node
