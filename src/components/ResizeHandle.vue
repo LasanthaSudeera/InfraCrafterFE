@@ -48,41 +48,30 @@ const handleMouseDown = (event) => {
     return
   }
 
-  // Get the actual custom node element - find the first child div of the wrapper
-  // This should be the VpcNode, SubnetNode, etc. container
-  const customNodeElement = nodeElement.querySelector('.vue-flow__node-default > div')
+  // Get the actual custom node element - it's the parent of the resize handle
+  const customNodeElement = event.target.parentElement
   
   if (!customNodeElement) {
     console.error('Could not find custom node element')
-    // Fallback to the node element itself
-    const rect = nodeElement.getBoundingClientRect()
-    emit('start-resize', {
-      id: props.nodeId,
-      edge: props.edge,
-      startX: event.clientX,
-      startY: event.clientY,
-      startWidth: rect.width,
-      startHeight: rect.height,
-    })
     return
   }
 
-  const rect = customNodeElement.getBoundingClientRect()
+  // Use offsetWidth/offsetHeight which are the actual DOM dimensions
+  const width = customNodeElement.offsetWidth
+  const height = customNodeElement.offsetHeight
   
-  console.log('Mouse down on resize handle:', {
-    edge: props.edge,
-    nodeId: props.nodeId,
-    element: customNodeElement.className,
-    rect: { width: rect.width, height: rect.height }
-  })
+  if (!width || !height) {
+    console.error('Invalid dimensions:', { width, height })
+    return
+  }
   
   emit('start-resize', {
     id: props.nodeId,
     edge: props.edge,
     startX: event.clientX,
     startY: event.clientY,
-    startWidth: rect.width,
-    startHeight: rect.height,
+    startWidth: width,
+    startHeight: height,
   })
 }
 </script>

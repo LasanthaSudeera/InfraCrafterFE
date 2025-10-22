@@ -16,6 +16,7 @@
       @dragover.prevent
     >
       <VueFlow
+        ref="vueFlowRef"
         :nodes="nodes"
         :edges="edges"
         @node-click="$emit('node-click', $event)"
@@ -93,7 +94,8 @@ const props = defineProps({
 const emit = defineEmits(['drop', 'node-click', 'pane-click', 'nodes-change', 'edges-change', 'node-resize', 'export'])
 
 const canvasRef = ref(null)
-const resizing = ref(null) // { id, edge, startX, startY, startWidth, startHeight }
+const resizing = ref(null) // { id, edge, startX, startY, startWidth, startHeight, zoom }
+const vueFlowRef = ref(null)
 
 // Handle drop event
 const handleDrop = (event) => {
@@ -130,8 +132,9 @@ const handleExport = async () => {
 
 // Start resize
 const startResize = (payload) => {
-  console.log('Start resize:', payload)
-  resizing.value = payload
+  // Get current zoom level from VueFlow instance
+  const zoom = vueFlowRef.value?.viewport?.zoom || 1
+  resizing.value = { ...payload, zoom }
   document.body.style.cursor = getCursor(payload.edge)
 }
 
@@ -164,8 +167,10 @@ const handleResize = (event) => {
   resizeAnimationFrame = requestAnimationFrame(() => {
     if (!resizing.value) return
 
-    const deltaX = event.clientX - resizing.value.startX
-    const deltaY = event.clientY - resizing.value.startY
+    // Get zoom level from when resize started
+    const zoom = resizing.value.zoom || 1
+    const deltaX = (event.clientX - resizing.value.startX) / zoom
+    const deltaY = (event.clientY - resizing.value.startY) / zoom
 
     let newWidth = resizing.value.startWidth
     let newHeight = resizing.value.startHeight

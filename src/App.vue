@@ -87,7 +87,6 @@ const onDrop = (position) => {
 
   // Check for parent containment
   const parent = findParentNode(position, draggedType.value)
-  console.log('Looking for parent for', draggedType.value, 'at position', position, 'found:', parent)
   
   // Auto-generate subnet CIDR if dropping into VPC
   if (draggedType.value === 'Subnet' && parent && parent.type === 'vpc') {
@@ -126,8 +125,6 @@ const onDrop = (position) => {
       x: position.x - parentAbsPos.x,
       y: position.y - parentAbsPos.y
     }
-    
-    console.log('Parent absolute pos:', parentAbsPos, 'New node relative pos:', newNode.position)
   }
 
   nodes.value.push(newNode)
@@ -218,12 +215,6 @@ const getDefaultHeight = (type) => {
 
 // Find parent node based on position and type rules
 const findParentNode = (position, type) => {
-  console.log('=== findParentNode called ===')
-  console.log('Looking for parent for type:', type)
-  console.log('Drop position:', position)
-  console.log('Total nodes:', nodes.value.length)
-  console.log('All nodes:', nodes.value.map(n => ({ id: n.id, type: n.type, label: n.data.label, pos: n.position, parent: n.parentNode })))
-  
   // Define containment rules - match draggedType values (before lowercasing)
   const rules = {
     'VPC': null,  // VPC has no parent
@@ -235,9 +226,7 @@ const findParentNode = (position, type) => {
   }
 
   const allowedParents = rules[type]
-  console.log('Allowed parent types for', type, ':', allowedParents)
   if (!allowedParents) {
-    console.log('No parent needed for', type)
     return null
   }
 
@@ -263,7 +252,6 @@ const findParentNode = (position, type) => {
     const node = nodes.value[i]
     // Use node.type instead of node.data.label for comparison
     if (!allowedParents.includes(node.type)) {
-      console.log('Skipping node', node.type, node.data.label, '(not in allowed parents)')
       continue
     }
 
@@ -274,27 +262,16 @@ const findParentNode = (position, type) => {
     // Get absolute position (nodes with parents have relative positions)
     const absolutePos = getAbsolutePosition(node)
     
-    console.log('Checking node:', node.type, node.data.label, {
-      relativePos: node.position,
-      absolutePos,
-      nodeWidth,
-      nodeHeight,
-      dropPos: position,
-      hasParent: !!node.parentNode
-    })
-    
     if (
       position.x >= absolutePos.x &&
       position.x <= absolutePos.x + nodeWidth &&
       position.y >= absolutePos.y &&
       position.y <= absolutePos.y + nodeHeight
     ) {
-      console.log('✓ Found parent:', node.type, node.data.label)
       return node
     }
   }
 
-  console.log('✗ No parent found')
   return null
 }
 
