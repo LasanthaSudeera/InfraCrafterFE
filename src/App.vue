@@ -88,6 +88,15 @@ const onDrop = (position) => {
   // Check for parent containment
   const parent = findParentNode(position, draggedType.value)
   console.log('Looking for parent for', draggedType.value, 'at position', position, 'found:', parent)
+  
+  // Auto-generate subnet CIDR if dropping into VPC
+  if (draggedType.value === 'Subnet' && parent && parent.type === 'vpc') {
+    const nextCidr = getNextSubnetCidr(parent)
+    if (nextCidr) {
+      newNode.data.cidr = nextCidr
+    }
+  }
+  
   if (parent) {
     newNode.parentNode = parent.id
     newNode.extent = 'parent'
@@ -123,6 +132,48 @@ const onDrop = (position) => {
 
   nodes.value.push(newNode)
   draggedType.value = null
+}
+
+// Get next available subnet CIDR for a VPC
+const getNextSubnetCidr = (vpcNode) => {
+  try {
+    // Parse VPC CIDR (e.g., "10.0.0.0/16")
+    const vpcCidr = vpcNode.data.cidr
+    const [vpcIp, vpcPrefix] = vpcCidr.split('/')
+    const vpcPrefixNum = parseInt(vpcPrefix)
+    
+    // Get all existing subnets in this VPC
+    const existingSubnets = nodes.value.filter(n => 
+      n.type === 'subnet' && n.parentNode === vpcNode.id
+    )
+    
+    // Parse VPC base IP (e.g., "10.0" from "10.0.0.0/16")
+    const vpcParts = vpcIp.split('.')
+    const vpcBase = `${vpcParts[0]}.${vpcParts[1]}`
+    
+    // Subnet will be /24, so we increment the third octet
+    // Start from the next available third octet
+    let thirdOctet = 0
+    
+    // Find the highest third octet used
+    existingSubnets.forEach(subnet => {
+      const subnetCidr = subnet.data.cidr
+      if (subnetCidr) {
+        const [subnetIp] = subnetCidr.split('/')
+        const subnetParts = subnetIp.split('.')
+        const subnetThirdOctet = parseInt(subnetParts[2])
+        if (subnetThirdOctet >= thirdOctet) {
+          thirdOctet = subnetThirdOctet + 1
+        }
+      }
+    })
+    
+    // Generate next CIDR (e.g., "10.0.1.0/24", "10.0.2.0/24", etc.)
+    return `${vpcBase}.${thirdOctet}.0/24`
+  } catch (error) {
+    console.error('Error generating subnet CIDR:', error)
+    return '10.0.1.0/24' // fallback
+  }
 }
 
 // Get default data for node type
