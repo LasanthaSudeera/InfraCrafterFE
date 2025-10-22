@@ -151,42 +151,56 @@ const getCursor = (edge) => {
 }
 
 // Handle resize during mouse move
+let resizeAnimationFrame = null
 const handleResize = (event) => {
   if (!resizing.value) return
 
-  const deltaX = event.clientX - resizing.value.startX
-  const deltaY = event.clientY - resizing.value.startY
-
-  let newWidth = resizing.value.startWidth
-  let newHeight = resizing.value.startHeight
-
-  const edge = resizing.value.edge
-
-  if (edge.includes('e')) {
-    newWidth = Math.max(100, resizing.value.startWidth + deltaX)
-  }
-  if (edge.includes('w')) {
-    newWidth = Math.max(100, resizing.value.startWidth - deltaX)
-  }
-  if (edge.includes('s')) {
-    newHeight = Math.max(80, resizing.value.startHeight + deltaY)
-  }
-  if (edge.includes('n')) {
-    newHeight = Math.max(80, resizing.value.startHeight - deltaY)
+  // Cancel previous frame if exists
+  if (resizeAnimationFrame) {
+    cancelAnimationFrame(resizeAnimationFrame)
   }
 
-  console.log('Resizing to:', { width: newWidth, height: newHeight })
+  // Throttle using requestAnimationFrame
+  resizeAnimationFrame = requestAnimationFrame(() => {
+    if (!resizing.value) return
 
-  emit('node-resize', {
-    id: resizing.value.id,
-    width: Math.round(newWidth),
-    height: Math.round(newHeight),
+    const deltaX = event.clientX - resizing.value.startX
+    const deltaY = event.clientY - resizing.value.startY
+
+    let newWidth = resizing.value.startWidth
+    let newHeight = resizing.value.startHeight
+
+    const edge = resizing.value.edge
+
+    if (edge.includes('e')) {
+      newWidth = Math.max(100, resizing.value.startWidth + deltaX)
+    }
+    if (edge.includes('w')) {
+      newWidth = Math.max(100, resizing.value.startWidth - deltaX)
+    }
+    if (edge.includes('s')) {
+      newHeight = Math.max(80, resizing.value.startHeight + deltaY)
+    }
+    if (edge.includes('n')) {
+      newHeight = Math.max(80, resizing.value.startHeight - deltaY)
+    }
+
+    emit('node-resize', {
+      id: resizing.value.id,
+      width: Math.round(newWidth),
+      height: Math.round(newHeight),
+    })
+    
+    resizeAnimationFrame = null
   })
 }
 
 // Stop resize
 const stopResize = () => {
-  console.log('Stop resize')
+  if (resizeAnimationFrame) {
+    cancelAnimationFrame(resizeAnimationFrame)
+    resizeAnimationFrame = null
+  }
   document.body.style.cursor = 'default'
   resizing.value = null
 }

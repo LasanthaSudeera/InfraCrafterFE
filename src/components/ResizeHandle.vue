@@ -41,14 +41,21 @@ const handleMouseDown = (event) => {
   event.preventDefault()
   event.stopPropagation()
   
-  // Get the node element - it's the .vue-flow__node-default wrapper
+  // Get the node element - it's the .vue-flow__node wrapper
   let nodeElement = event.target.closest('.vue-flow__node')
   if (!nodeElement) {
     console.error('Could not find node element')
     return
   }
 
-  const rect = nodeElement.getBoundingClientRect()
+  // Get the actual custom node element (VpcNode, SubnetNode, etc.)
+  const customNodeElement = nodeElement.querySelector('[class*="-node"]')
+  if (!customNodeElement) {
+    console.error('Could not find custom node element')
+    return
+  }
+
+  const rect = customNodeElement.getBoundingClientRect()
   
   console.log('Mouse down on resize handle:', {
     edge: props.edge,
