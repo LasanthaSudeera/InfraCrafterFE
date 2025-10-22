@@ -16,7 +16,6 @@
       @dragover.prevent
     >
       <VueFlow
-        :key="flowKey"
         :nodes="nodes"
         :edges="edges"
         @node-click="$emit('node-click', $event)"
@@ -95,7 +94,6 @@ const emit = defineEmits(['drop', 'node-click', 'pane-click', 'nodes-change', 'e
 
 const canvasRef = ref(null)
 const resizing = ref(null) // { id, edge, startX, startY, startWidth, startHeight }
-const flowKey = ref(0) // Force re-render key
 
 // Handle drop event
 const handleDrop = (event) => {
@@ -184,9 +182,6 @@ const handleResize = (event) => {
     width: Math.round(newWidth),
     height: Math.round(newHeight),
   })
-  
-  // Force Vue Flow to update
-  flowKey.value++
 }
 
 // Stop resize

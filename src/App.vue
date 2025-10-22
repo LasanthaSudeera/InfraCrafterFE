@@ -87,6 +87,7 @@ const onDrop = (position) => {
 
   // Check for parent containment
   const parent = findParentNode(position, draggedType.value)
+  console.log('Looking for parent for', draggedType.value, 'at position', position, 'found:', parent)
   if (parent) {
     newNode.parentNode = parent.id
     newNode.extent = 'parent'
@@ -143,26 +144,41 @@ const getDefaultHeight = (type) => {
 
 // Find parent node based on position and type rules
 const findParentNode = (position, type) => {
-  // Define containment rules
+  console.log('findParentNode called:', { position, type, totalNodes: nodes.value.length })
+  
+  // Define containment rules - match draggedType values (before lowercasing)
   const rules = {
-    'Subnet': ['VPC'],
-    'RouteTable': ['VPC'],
-    'EC2': ['Subnet'],
-    'InternetGateway': ['RouteTable'],
-    'NatGateway': ['RouteTable'],
+    'VPC': null,  // VPC has no parent
+    'Subnet': ['vpc'],
+    'RouteTable': ['vpc'],
+    'EC2': ['subnet'],
+    'InternetGateway': ['routetable'],
+    'NatGateway': ['routetable'],
   }
 
   const allowedParents = rules[type]
+  console.log('Allowed parents for', type, ':', allowedParents)
   if (!allowedParents) return null
 
   // Check nodes in reverse order (top nodes first)
   for (let i = nodes.value.length - 1; i >= 0; i--) {
     const node = nodes.value[i]
-    if (!allowedParents.includes(node.data.label)) continue
+    // Use node.type instead of node.data.label for comparison
+    if (!allowedParents.includes(node.type)) {
+      console.log('Skipping node', node.type, node.data.label, '(not in allowed parents)')
+      continue
+    }
 
     // Get actual node dimensions (may have been resized)
     const nodeWidth = node.style?.width ? parseInt(node.style.width) : getDefaultWidth(node.data.label)
     const nodeHeight = node.style?.height ? parseInt(node.style.height) : getDefaultHeight(node.data.label)
+    
+    console.log('Checking node:', node.type, node.data.label, {
+      nodePos: node.position,
+      nodeWidth,
+      nodeHeight,
+      dropPos: position
+    })
     
     if (
       position.x >= node.position.x &&
@@ -170,10 +186,12 @@ const findParentNode = (position, type) => {
       position.y >= node.position.y &&
       position.y <= node.position.y + nodeHeight
     ) {
+      console.log('✓ Found parent:', node.type, node.data.label)
       return node
     }
   }
 
+  console.log('✗ No parent found')
   return null
 }
 
@@ -217,37 +235,19 @@ const updateNode = (updates) => {
 
 // Handle node resize from canvas
 const onNodeResize = ({ id, width, height }) => {
-  console.log('onNodeResize called:', { id, width, height })
-  const nodeIndex = nodes.value.findIndex(n => n.id === id)
-  if (nodeIndex !== -1) {
-    const node = nodes.value[nodeIndex]
-    console.log('Found node at index', nodeIndex, 'current style:', node.style)
-    
-    // Create new node object with updated style
-    const updatedNode = {
-      ...node,
-      style: {
-        width: `${width}px`,
-        height: `${height}px`,
-      },
-      // Force Vue Flow to re-render by changing a property
-      data: { ...node.data }
+  const node = nodes.value.find(n => n.id === id)
+  if (node) {
+    // Update style directly without replacing the entire node
+    if (!node.style) {
+      node.style = {}
     }
-    
-    console.log('Updated node style:', updatedNode.style)
-    
-    // Replace the node in the array to trigger reactivity
-    nodes.value[nodeIndex] = updatedNode
-    
-    // Force a full array update
-    nodes.value = [...nodes.value]
+    node.style.width = `${width}px`
+    node.style.height = `${height}px`
     
     // Update selected node if it's the one being resized
     if (selectedNode.value?.id === id) {
-      selectedNode.value = updatedNode
+      selectedNode.value = { ...selectedNode.value, style: { ...node.style } }
     }
-  } else {
-    console.error('Node not found:', id)
   }
 }
 
@@ -345,10 +345,6 @@ const associateSubnetWithRouteTable = (subnetId, routeTableId) => {
     })
   }
   
-  // Trigger reactivity
-  nodes.value = [...nodes.value]
-  edges.value = [...edges.value]
-  
   // Update selected node
   if (selectedNode.value?.id === subnetId) {
     selectedNode.value = { ...subnet }
@@ -375,9 +371,6 @@ const disassociateSubnetFromRouteTable = (subnetId) => {
   // Remove edge
   const edgeId = `${subnetId}-${routeTableId}`
   edges.value = edges.value.filter(e => e.id !== edgeId)
-  
-  // Trigger reactivity
-  nodes.value = [...nodes.value]
   
   // Update selected node
   if (selectedNode.value?.id === subnetId) {
