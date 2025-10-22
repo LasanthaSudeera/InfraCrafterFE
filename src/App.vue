@@ -142,9 +142,9 @@ const findParentNode = (position, type) => {
     const node = nodes.value[i]
     if (!allowedParents.includes(node.data.label)) continue
 
-    // Simple bounding box check
-    const nodeWidth = getNodeWidth(node.type)
-    const nodeHeight = getNodeHeight(node.type)
+    // Get actual node dimensions (may have been resized)
+    const nodeWidth = node.style?.width ? parseInt(node.style.width) : getDefaultWidth(node.data.label)
+    const nodeHeight = node.style?.height ? parseInt(node.style.height) : getDefaultHeight(node.data.label)
     
     if (
       position.x >= node.position.x &&
@@ -159,7 +159,7 @@ const findParentNode = (position, type) => {
   return null
 }
 
-// Get node dimensions for containment check
+// Get node dimensions for containment check (kept for backwards compatibility, but use getDefaultWidth/Height instead)
 const getNodeWidth = (type) => {
   switch (type) {
     case 'vpc': return 600
