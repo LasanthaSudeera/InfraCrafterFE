@@ -3,6 +3,13 @@
     <!-- Export buttons -->
     <div class="absolute top-4 right-4 z-10 flex gap-2">
       <button
+        @click="handleClearCanvas"
+        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded shadow-lg"
+        title="Clear all nodes and edges"
+      >
+        Clear Canvas
+      </button>
+      <button
         @click="handleExportTerraform"
         class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-lg"
       >
@@ -99,7 +106,7 @@ const props = defineProps({
   edges: Array,
 })
 
-const emit = defineEmits(['drop', 'node-click', 'pane-click', 'nodes-change', 'edges-change', 'node-resize', 'export'])
+const emit = defineEmits(['drop', 'node-click', 'pane-click', 'nodes-change', 'edges-change', 'node-resize', 'export', 'clear-canvas'])
 
 const canvasRef = ref(null)
 const resizing = ref(null) // { id, edge, startX, startY, startWidth, startHeight, zoom }
@@ -167,6 +174,13 @@ const handleExportTerraform = () => {
   
   // Also log as a single-line JSON for easy copying
   console.log('Single-line JSON:', JSON.stringify(exportData))
+}
+
+// Clear canvas
+const handleClearCanvas = () => {
+  if (confirm('Are you sure you want to clear the entire canvas? This will delete all nodes and edges.')) {
+    emit('clear-canvas')
+  }
 }
 
 // Start resize

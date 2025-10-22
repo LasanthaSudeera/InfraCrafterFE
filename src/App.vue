@@ -14,6 +14,7 @@
       @edges-change="onEdgesChange"
       @node-resize="onNodeResize"
       @export="exportCanvas"
+      @clear-canvas="clearCanvas"
     />
 
     <!-- Inspector -->
@@ -29,7 +30,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import Canvas from './components/Canvas.vue'
 import Toolbox from './components/Toolbox.vue'
 import Inspector from './components/Inspector.vue'
@@ -41,6 +42,8 @@ const draggedType = ref(null)
 let nodeIdCounter = 0
 let routeTableColorIndex = 0
 
+const STORAGE_KEY = 'infracrafter-canvas-state'
+
 // Color palette for route tables and their associated subnets
 const routeTableColors = [
   { border: 'border-green-500', bg: 'bg-green-50', text: 'text-green-800', badge: 'bg-green-200 text-green-700', edge: '#10b981' },
@@ -50,6 +53,49 @@ const routeTableColors = [
   { border: 'border-orange-500', bg: 'bg-orange-50', text: 'text-orange-800', badge: 'bg-orange-200 text-orange-700', edge: '#f97316' },
   { border: 'border-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-800', badge: 'bg-cyan-200 text-cyan-700', edge: '#06b6d4' },
 ]
+
+// Load state from localStorage
+const loadState = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      const state = JSON.parse(saved)
+      nodes.value = state.nodes || []
+      edges.value = state.edges || []
+      nodeIdCounter = state.nodeIdCounter || 0
+      routeTableColorIndex = state.routeTableColorIndex || 0
+      console.log('Loaded state from localStorage:', state)
+    }
+  } catch (error) {
+    console.error('Failed to load state from localStorage:', error)
+  }
+}
+
+// Save state to localStorage
+const saveState = () => {
+  try {
+    const state = {
+      nodes: nodes.value,
+      edges: edges.value,
+      nodeIdCounter,
+      routeTableColorIndex,
+      timestamp: new Date().toISOString()
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+  } catch (error) {
+    console.error('Failed to save state to localStorage:', error)
+  }
+}
+
+// Watch for changes and save to localStorage
+watch([nodes, edges], () => {
+  saveState()
+}, { deep: true })
+
+// Load state on mount
+onMounted(() => {
+  loadState()
+})
 
 // Generate unique ID
 const generateId = () => `node_${++nodeIdCounter}`
@@ -364,6 +410,15 @@ const deleteNode = () => {
   nodes.value = nodes.value.filter(n => !toRemove.includes(n.id))
   edges.value = edges.value.filter(e => !toRemove.includes(e.source) && !toRemove.includes(e.target))
   selectedNode.value = null
+}
+
+// Clear entire canvas
+const clearCanvas = () => {
+  nodes.value = []
+  edges.value = []
+  selectedNode.value = null
+  nodeIdCounter = 0
+  routeTableColorIndex = 0
 }
 
 // Handle nodes change (from vue-flow)
