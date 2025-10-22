@@ -1,12 +1,20 @@
 <template>
   <div class="flex-1 relative">
-    <!-- Export button -->
-    <button
-      @click="handleExport"
-      class="absolute top-4 right-4 z-10 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-lg"
-    >
-      Export PNG
-    </button>
+    <!-- Export buttons -->
+    <div class="absolute top-4 right-4 z-10 flex gap-2">
+      <button
+        @click="handleExportTerraform"
+        class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded shadow-lg"
+      >
+        Export Open Tofu/Terraform
+      </button>
+      <button
+        @click="handleExport"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow-lg"
+      >
+        Export PNG
+      </button>
+    </div>
 
     <!-- Vue Flow Canvas -->
     <div
@@ -128,6 +136,37 @@ const handleExport = async () => {
   } catch (error) {
     console.error('Failed to export:', error)
   }
+}
+
+// Export as Terraform/Tofu JSON
+const handleExportTerraform = () => {
+  // Prepare the data to send to the server
+  const exportData = {
+    nodes: props.nodes.map(node => ({
+      id: node.id,
+      type: node.type,
+      label: node.data.label,
+      position: node.position,
+      data: node.data,
+      parentNode: node.parentNode,
+      style: node.style
+    })),
+    edges: props.edges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label
+    })),
+    timestamp: new Date().toISOString()
+  }
+
+  // Log the JSON to console
+  console.log('=== TERRAFORM/TOFU EXPORT DATA ===')
+  console.log(exportData)
+  console.log('===================================')
+  
+  // Also log as a single-line JSON for easy copying
+  console.log('Single-line JSON:', JSON.stringify(exportData))
 }
 
 // Start resize
