@@ -306,10 +306,24 @@ const onPaneClick = () => {
 
 // Update node data
 const updateNode = (updates) => {
-  const node = nodes.value.find(n => n.id === selectedNode.value.id)
-  if (node) {
-    node.data = { ...node.data, ...updates }
-    selectedNode.value = { ...selectedNode.value, data: node.data }
+  const nodeIndex = nodes.value.findIndex(n => n.id === selectedNode.value.id)
+  if (nodeIndex !== -1) {
+    const node = nodes.value[nodeIndex]
+    // Create new node object with updated data
+    const updatedNode = {
+      ...node,
+      data: { ...node.data, ...updates }
+    }
+    
+    // Create new array with updated node to trigger reactivity
+    nodes.value = [
+      ...nodes.value.slice(0, nodeIndex),
+      updatedNode,
+      ...nodes.value.slice(nodeIndex + 1)
+    ]
+    
+    // Update selected node to reflect changes in inspector
+    selectedNode.value = { ...updatedNode }
   }
 }
 
