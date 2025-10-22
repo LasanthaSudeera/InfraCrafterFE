@@ -39,6 +39,17 @@ const edges = ref([])
 const selectedNode = ref(null)
 const draggedType = ref(null)
 let nodeIdCounter = 0
+let routeTableColorIndex = 0
+
+// Color palette for route tables and their associated subnets
+const routeTableColors = [
+  { border: 'border-green-500', bg: 'bg-green-50', text: 'text-green-800', badge: 'bg-green-200 text-green-700', edge: '#10b981' },
+  { border: 'border-blue-500', bg: 'bg-blue-50', text: 'text-blue-800', badge: 'bg-blue-200 text-blue-700', edge: '#3b82f6' },
+  { border: 'border-purple-500', bg: 'bg-purple-50', text: 'text-purple-800', badge: 'bg-purple-200 text-purple-700', edge: '#a855f7' },
+  { border: 'border-pink-500', bg: 'bg-pink-50', text: 'text-pink-800', badge: 'bg-pink-200 text-pink-700', edge: '#ec4899' },
+  { border: 'border-orange-500', bg: 'bg-orange-50', text: 'text-orange-800', badge: 'bg-orange-200 text-orange-700', edge: '#f97316' },
+  { border: 'border-cyan-500', bg: 'bg-cyan-50', text: 'text-cyan-800', badge: 'bg-cyan-200 text-cyan-700', edge: '#06b6d4' },
+]
 
 // Generate unique ID
 const generateId = () => `node_${++nodeIdCounter}`
@@ -65,6 +76,13 @@ const onDrop = (position) => {
       height: `${getDefaultHeight(draggedType.value)}px`,
     },
     class: 'custom-node',
+  }
+
+  // Assign color to route table
+  if (draggedType.value === 'RouteTable') {
+    const colorIndex = routeTableColorIndex % routeTableColors.length
+    newNode.data.colorScheme = routeTableColors[colorIndex]
+    routeTableColorIndex++
   }
 
   // Check for parent containment
@@ -290,12 +308,17 @@ const onEdgesChange = (changes) => {
 const associateSubnetWithRouteTable = (subnetId, routeTableId) => {
   // Update subnet
   const subnet = nodes.value.find(n => n.id === subnetId)
-  if (subnet) {
+  const routeTable = nodes.value.find(n => n.id === routeTableId)
+  
+  if (subnet && routeTable) {
     subnet.data.routeTableId = routeTableId
+    // Copy the route table's color scheme to the subnet
+    if (routeTable.data.colorScheme) {
+      subnet.data.colorScheme = routeTable.data.colorScheme
+    }
   }
   
   // Update route table
-  const routeTable = nodes.value.find(n => n.id === routeTableId)
   if (routeTable) {
     if (!routeTable.data.associatedSubnets) {
       routeTable.data.associatedSubnets = []
@@ -305,19 +328,20 @@ const associateSubnetWithRouteTable = (subnetId, routeTableId) => {
     }
   }
   
-  // Create or update edge
+  // Create or update edge with matching color
   const edgeId = `${subnetId}-${routeTableId}`
   const existingEdge = edges.value.find(e => e.id === edgeId)
   if (!existingEdge) {
+    const edgeColor = routeTable?.data?.colorScheme?.edge || '#10b981'
     edges.value.push({
       id: edgeId,
       source: subnetId,
       target: routeTableId,
       animated: true,
-      style: { stroke: '#10b981', strokeWidth: 2 },
+      style: { stroke: edgeColor, strokeWidth: 2 },
       label: 'associated',
-      labelStyle: { fill: '#10b981', fontWeight: 600, fontSize: '10px' },
-      labelBgStyle: { fill: '#ecfdf5' },
+      labelStyle: { fill: edgeColor, fontWeight: 600, fontSize: '10px' },
+      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.8 },
     })
   }
   
@@ -338,8 +362,9 @@ const disassociateSubnetFromRouteTable = (subnetId) => {
   
   const routeTableId = subnet.data.routeTableId
   
-  // Update subnet
+  // Update subnet - remove route table ID and color scheme
   subnet.data.routeTableId = null
+  subnet.data.colorScheme = null
   
   // Update route table
   const routeTable = nodes.value.find(n => n.id === routeTableId)
