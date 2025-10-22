@@ -2,7 +2,16 @@
   <div class="rt-node border-3 border-green-400 bg-green-50 rounded-lg shadow-md p-3 w-full h-full">
     <div class="flex items-center justify-between mb-2">
       <div class="font-semibold text-green-800">🗺️ {{ data.label }}</div>
-      <div class="text-xs text-green-600 bg-green-200 px-2 py-1 rounded">Route Table</div>
+      <div class="flex gap-1 items-center">
+        <div 
+          v-if="hasAssociations"
+          class="text-xs text-green-700 bg-green-200 px-2 py-1 rounded font-semibold"
+          :title="`${associationCount} subnet(s) associated`"
+        >
+          🔗 {{ associationCount }}
+        </div>
+        <div class="text-xs text-green-600 bg-green-200 px-2 py-1 rounded">Route Table</div>
+      </div>
     </div>
     <div class="text-xs text-green-500 mt-1">Drop IGW or NAT Gateway here</div>
     
@@ -19,14 +28,24 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import ResizeHandle from '../ResizeHandle.vue'
 
-defineProps({
+const props = defineProps({
   data: Object,
   id: String,
 })
 
 defineEmits(['start-resize'])
+
+// Check if route table has associations
+const hasAssociations = computed(() => {
+  return props.data.associatedSubnets && props.data.associatedSubnets.length > 0
+})
+
+const associationCount = computed(() => {
+  return props.data.associatedSubnets?.length || 0
+})
 </script>
 
 <style scoped>

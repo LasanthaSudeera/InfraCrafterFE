@@ -19,8 +19,11 @@
     <!-- Inspector -->
     <Inspector
       :selected-node="selectedNode"
+      :all-nodes="nodes"
       @update="updateNode"
       @delete="deleteNode"
+      @associate-route-table="associateSubnetWithRouteTable"
+      @disassociate-route-table="disassociateSubnetFromRouteTable"
     />
   </div>
 </template>
@@ -125,6 +128,7 @@ const findParentNode = (position, type) => {
   // Define containment rules
   const rules = {
     'Subnet': ['VPC'],
+    'RouteTable': ['VPC'],
     'EC2': ['Subnet'],
     'InternetGateway': ['RouteTable'],
     'NatGateway': ['RouteTable'],
@@ -280,6 +284,80 @@ const onEdgesChange = (changes) => {
       edges.value = edges.value.filter(e => e.id !== change.id)
     }
   })
+}
+
+// Associate subnet with route table
+const associateSubnetWithRouteTable = (subnetId, routeTableId) => {
+  // Update subnet
+  const subnet = nodes.value.find(n => n.id === subnetId)
+  if (subnet) {
+    subnet.data.routeTableId = routeTableId
+  }
+  
+  // Update route table
+  const routeTable = nodes.value.find(n => n.id === routeTableId)
+  if (routeTable) {
+    if (!routeTable.data.associatedSubnets) {
+      routeTable.data.associatedSubnets = []
+    }
+    if (!routeTable.data.associatedSubnets.includes(subnetId)) {
+      routeTable.data.associatedSubnets.push(subnetId)
+    }
+  }
+  
+  // Create or update edge
+  const edgeId = `${subnetId}-${routeTableId}`
+  const existingEdge = edges.value.find(e => e.id === edgeId)
+  if (!existingEdge) {
+    edges.value.push({
+      id: edgeId,
+      source: subnetId,
+      target: routeTableId,
+      animated: true,
+      style: { stroke: '#10b981', strokeWidth: 2 },
+      label: 'associated',
+      labelStyle: { fill: '#10b981', fontWeight: 600, fontSize: '10px' },
+      labelBgStyle: { fill: '#ecfdf5' },
+    })
+  }
+  
+  // Trigger reactivity
+  nodes.value = [...nodes.value]
+  edges.value = [...edges.value]
+  
+  // Update selected node
+  if (selectedNode.value?.id === subnetId) {
+    selectedNode.value = { ...subnet }
+  }
+}
+
+// Disassociate subnet from route table
+const disassociateSubnetFromRouteTable = (subnetId) => {
+  const subnet = nodes.value.find(n => n.id === subnetId)
+  if (!subnet || !subnet.data.routeTableId) return
+  
+  const routeTableId = subnet.data.routeTableId
+  
+  // Update subnet
+  subnet.data.routeTableId = null
+  
+  // Update route table
+  const routeTable = nodes.value.find(n => n.id === routeTableId)
+  if (routeTable && routeTable.data.associatedSubnets) {
+    routeTable.data.associatedSubnets = routeTable.data.associatedSubnets.filter(id => id !== subnetId)
+  }
+  
+  // Remove edge
+  const edgeId = `${subnetId}-${routeTableId}`
+  edges.value = edges.value.filter(e => e.id !== edgeId)
+  
+  // Trigger reactivity
+  nodes.value = [...nodes.value]
+  
+  // Update selected node
+  if (selectedNode.value?.id === subnetId) {
+    selectedNode.value = { ...subnet }
+  }
 }
 
 // Export canvas as PNG

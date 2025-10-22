@@ -54,6 +54,42 @@
         </select>
       </div>
 
+      <!-- Route Table Association (for Subnets) -->
+      <div v-if="selectedNode.type === 'subnet'">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Route Table</label>
+        <select
+          :value="selectedNode.data.routeTableId || ''"
+          @change="handleRouteTableChange($event.target.value)"
+          class="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">No Route Table</option>
+          <option 
+            v-for="rt in routeTables" 
+            :key="rt.id" 
+            :value="rt.id"
+          >
+            {{ rt.data.label }}
+          </option>
+        </select>
+        <div v-if="selectedNode.data.routeTableId" class="mt-1 text-xs text-green-600">
+          ✓ Associated with Route Table
+        </div>
+      </div>
+
+      <!-- Associated Subnets (for Route Tables) -->
+      <div v-if="selectedNode.type === 'routetable' && associatedSubnets.length > 0">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Associated Subnets</label>
+        <div class="text-sm space-y-1">
+          <div 
+            v-for="subnet in associatedSubnets" 
+            :key="subnet.id"
+            class="px-2 py-1 bg-green-50 text-green-700 rounded border border-green-200"
+          >
+            {{ subnet.data.label }}
+          </div>
+        </div>
+      </div>
+
       <!-- Node ID (read-only) -->
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">Node ID</label>
@@ -102,12 +138,44 @@ import { computed } from 'vue'
 
 const props = defineProps({
   selectedNode: Object,
+  allNodes: Array,
 })
 
-const emit = defineEmits(['update', 'delete'])
+const emit = defineEmits(['update', 'delete', 'associate-route-table', 'disassociate-route-table'])
 
 const updateField = (field, value) => {
   emit('update', { [field]: value })
+}
+
+// Get all route tables in the same VPC
+const routeTables = computed(() => {
+  if (!props.selectedNode || props.selectedNode.type !== 'subnet') return []
+  if (!props.allNodes) return []
+  
+  const parentVpcId = props.selectedNode.parentNode
+  if (!parentVpcId) return []
+  
+  return props.allNodes.filter(node => 
+    node.type === 'routetable' && node.parentNode === parentVpcId
+  )
+})
+
+// Get subnets associated with this route table
+const associatedSubnets = computed(() => {
+  if (!props.selectedNode || props.selectedNode.type !== 'routetable') return []
+  if (!props.allNodes) return []
+  
+  const associatedIds = props.selectedNode.data.associatedSubnets || []
+  return props.allNodes.filter(node => associatedIds.includes(node.id))
+})
+
+// Handle route table association change
+const handleRouteTableChange = (routeTableId) => {
+  if (routeTableId) {
+    emit('associate-route-table', props.selectedNode.id, routeTableId)
+  } else {
+    emit('disassociate-route-table', props.selectedNode.id)
+  }
 }
 
 // Get current dimensions
