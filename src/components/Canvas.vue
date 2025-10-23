@@ -43,6 +43,9 @@
         :max-zoom="4"
         :node-extent="[[0, 0], [5000, 5000]]"
         :fit-view-on-init="false"
+        :edges-updatable="false"
+        :elevate-edges-on-select="true"
+        :elevate-nodes-on-select="true"
       >
         <Background pattern-color="#aaa" :gap="16" />
         <Controls />
@@ -116,11 +119,18 @@ const vueFlowRef = ref(null)
 const handleDrop = (event) => {
   event.preventDefault()
   
+  // Get VueFlow viewport (zoom and pan)
+  const viewport = vueFlowRef.value?.viewport || { x: 0, y: 0, zoom: 1 }
+  
   const rect = canvasRef.value.getBoundingClientRect()
-  const position = {
-    x: event.clientX - rect.left - 75, // center the node
-    y: event.clientY - rect.top - 40,
-  }
+  
+  // Calculate position in canvas coordinates accounting for zoom and pan
+  const x = (event.clientX - rect.left - viewport.x) / viewport.zoom - 75
+  const y = (event.clientY - rect.top - viewport.y) / viewport.zoom - 40
+  
+  const position = { x, y }
+  
+  console.log('Drop position:', position, 'Viewport:', viewport)
   
   emit('drop', position)
 }

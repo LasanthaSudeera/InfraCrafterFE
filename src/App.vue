@@ -173,7 +173,10 @@ const onDrop = (position) => {
     }
   }
 
-  nodes.value.push(newNode)
+  nodes.value = [...nodes.value, newNode]
+  
+  // Don't create automatic edges - only show association edges
+  
   draggedType.value = null
 }
 
@@ -261,6 +264,8 @@ const getDefaultHeight = (type) => {
 
 // Find parent node based on position and type rules
 const findParentNode = (position, type) => {
+  console.log('=== Finding parent for', type, 'at position', position)
+  
   // Define containment rules - match draggedType values (before lowercasing)
   const rules = {
     'VPC': null,  // VPC has no parent
@@ -272,7 +277,10 @@ const findParentNode = (position, type) => {
   }
 
   const allowedParents = rules[type]
+  console.log('Allowed parent types:', allowedParents)
+  
   if (!allowedParents) {
+    console.log('No parent needed for', type)
     return null
   }
 
@@ -308,16 +316,30 @@ const findParentNode = (position, type) => {
     // Get absolute position (nodes with parents have relative positions)
     const absolutePos = getAbsolutePosition(node)
     
+    console.log('Checking node:', node.data.label, {
+      type: node.type,
+      absolutePos,
+      width: nodeWidth,
+      height: nodeHeight,
+      dropPos: position,
+      inBounds: {
+        x: position.x >= absolutePos.x && position.x <= absolutePos.x + nodeWidth,
+        y: position.y >= absolutePos.y && position.y <= absolutePos.y + nodeHeight
+      }
+    })
+    
     if (
       position.x >= absolutePos.x &&
       position.x <= absolutePos.x + nodeWidth &&
       position.y >= absolutePos.y &&
       position.y <= absolutePos.y + nodeHeight
     ) {
+      console.log('✓ Found parent:', node.data.label)
       return node
     }
   }
 
+  console.log('✗ No parent found')
   return null
 }
 
@@ -482,16 +504,27 @@ const associateSubnetWithRouteTable = (subnetId, routeTableId) => {
   const existingEdge = edges.value.find(e => e.id === edgeId)
   if (!existingEdge) {
     const edgeColor = routeTable?.data?.colorScheme?.edge || '#10b981'
-    edges.value.push({
+    const newEdge = {
       id: edgeId,
       source: subnetId,
       target: routeTableId,
+      type: 'smoothstep',
       animated: true,
-      style: { stroke: edgeColor, strokeWidth: 2 },
+      style: { stroke: edgeColor, strokeWidth: 4, strokeOpacity: 1 },
       label: 'associated',
-      labelStyle: { fill: edgeColor, fontWeight: 600, fontSize: '10px' },
-      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.8 },
-    })
+      labelStyle: { fill: edgeColor, fontWeight: 700, fontSize: 14 },
+      labelBgStyle: { fill: '#ffffff', fillOpacity: 1, padding: 6 },
+      markerEnd: {
+        type: 'arrowclosed',
+        width: 25,
+        height: 25,
+        color: edgeColor,
+      },
+      zIndex: 1000,
+    }
+    console.log('Creating edge:', newEdge)
+    edges.value.push(newEdge)
+    console.log('Total edges after creation:', edges.value.length)
   }
   
   // Update selected node

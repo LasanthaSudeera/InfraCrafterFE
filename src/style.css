@@ -27,3 +27,19 @@ body {
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Ensure edges are visible */
+.vue-flow__edge {
+  pointer-events: all !important;
+}
+
+.vue-flow__edge-path {
+  stroke-width: inherit !important;
+}
+
+.vue-flow__edge-text {
+  pointer-events: none !important;
+}
+
+/* Let VueFlow handle node z-index automatically based on selection and order */
+/* Clicking a node will automatically bring it to front */
