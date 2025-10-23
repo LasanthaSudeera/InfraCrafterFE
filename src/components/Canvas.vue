@@ -44,8 +44,8 @@
         :node-extent="[[0, 0], [5000, 5000]]"
         :fit-view-on-init="false"
         :edges-updatable="false"
-        :elevate-edges-on-select="true"
-        :elevate-nodes-on-select="true"
+        :elevate-edges-on-select="false"
+        :elevate-nodes-on-select="false"
       >
         <Background pattern-color="#aaa" :gap="16" />
         <Controls />

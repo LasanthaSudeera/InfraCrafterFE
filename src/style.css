@@ -28,8 +28,19 @@ body {
   height: 100% !important;
 }
 
-/* Ensure edges are visible */
+/* Node z-index hierarchy to ensure proper layering */
+.vue-flow__node {
+  z-index: auto !important;
+}
+
+/* Selected nodes get a class but we'll let DOM order handle z-index naturally */
+.vue-flow__node.selected {
+  z-index: auto !important;
+}
+
+/* Ensure edges are always visible above all nodes */
 .vue-flow__edge {
+  z-index: 10000 !important;
   pointer-events: all !important;
 }
 
@@ -39,7 +50,7 @@ body {
 
 .vue-flow__edge-text {
   pointer-events: none !important;
+  z-index: 10001 !important;
 }
 
-/* Let VueFlow handle node z-index automatically based on selection and order */
-/* Clicking a node will automatically bring it to front */
+/* Edges always on top, nodes use natural DOM stacking order */
