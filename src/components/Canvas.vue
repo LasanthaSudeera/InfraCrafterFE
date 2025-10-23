@@ -94,6 +94,7 @@ import { VueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { toPng } from 'html-to-image'
+import Swal from 'sweetalert2'
 import VpcNode from './nodes/VpcNode.vue'
 import SubnetNode from './nodes/SubnetNode.vue'
 import Ec2Node from './nodes/Ec2Node.vue'
@@ -207,18 +208,76 @@ const handleExportTerraform = async () => {
       link.click()
       URL.revokeObjectURL(url)
       
-      alert(`✅ Terraform code generated successfully!\n\nStats:\n- Nodes: ${result.stats.nodes}\n- Edges: ${result.stats.edges}\n- Lines: ${result.stats.lines}`)
+      await Swal.fire({
+        icon: 'success',
+        title: '🎉 Success!',
+        html: `
+          <p style="font-size: 16px; margin-bottom: 12px;">
+            Your infrastructure code has been generated and downloaded successfully!
+          </p>
+          <div style="background-color: #f0f9ff; padding: 12px; border-radius: 8px; border-left: 4px solid #3b82f6;">
+            <p style="margin: 4px 0; color: #1e40af;"><strong>📊 Total Nodes:</strong> ${result.stats.nodes}</p>
+          </div>
+        `,
+        confirmButtonText: 'Awesome!',
+        confirmButtonColor: '#10b981',
+        width: '500px'
+      })
     }
   } catch (error) {
     console.error('Failed to export Terraform:', error)
-    alert('❌ Failed to export Terraform.\n\nPlease ensure the backend server is running:\n\ncd backend\nnpm start\n\nServer should be running on http://localhost:3001')
+    await Swal.fire({
+      icon: 'error',
+      title: 'Oops! Connection Issue',
+      html: `
+        <p style="font-size: 16px; margin-bottom: 12px;">
+          We couldn't connect to the backend server. Don't worry, it's an easy fix! 😊
+        </p>
+        <div style="background-color: #fef2f2; padding: 12px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left;">
+          <p style="margin: 4px 0; color: #991b1b;"><strong>Quick fix:</strong></p>
+          <p style="margin: 4px 0; color: #991b1b; font-family: monospace; font-size: 14px;">cd backend</p>
+          <p style="margin: 4px 0; color: #991b1b; font-family: monospace; font-size: 14px;">npm start</p>
+          <p style="margin: 8px 0 4px 0; color: #991b1b; font-size: 14px;">The server should run on <strong>http://localhost:3001</strong></p>
+        </div>
+      `,
+      confirmButtonText: 'Got it!',
+      confirmButtonColor: '#3b82f6',
+      width: '550px'
+    })
   }
 }
 
 // Clear canvas
-const handleClearCanvas = () => {
-  if (confirm('Are you sure you want to clear the entire canvas? This will delete all nodes and edges.')) {
+const handleClearCanvas = async () => {
+  const result = await Swal.fire({
+    icon: 'warning',
+    title: 'Clear Canvas?',
+    html: `
+      <p style="font-size: 16px;">
+        Are you sure you want to clear everything? All your nodes and connections will be removed. 🗑️
+      </p>
+      <p style="font-size: 14px; color: #6b7280; margin-top: 8px;">
+        This action cannot be undone!
+      </p>
+    `,
+    showCancelButton: true,
+    confirmButtonText: 'Yes, clear it!',
+    cancelButtonText: 'No, keep it',
+    confirmButtonColor: '#ef4444',
+    cancelButtonColor: '#6b7280',
+    width: '450px'
+  })
+  
+  if (result.isConfirmed) {
     emit('clear-canvas')
+    await Swal.fire({
+      icon: 'success',
+      title: 'Cleared!',
+      text: 'Your canvas is now fresh and clean! ✨',
+      timer: 2000,
+      showConfirmButton: false,
+      width: '400px'
+    })
   }
 }
 
