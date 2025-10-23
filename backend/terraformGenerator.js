@@ -101,7 +101,7 @@ provider "aws" {
   enable_dns_support   = true
 
   tags = {
-    Name = "${vpc.data.label}"
+${this.generateTags(vpc.data.label)}
   }
 }`
   }
@@ -121,7 +121,7 @@ provider "aws" {
   availability_zone = "us-east-1a"  # Change as needed
 
   tags = {
-    Name = "${subnet.data.label}"
+${this.generateTags(subnet.data.label)}
   }
 }`
   }
@@ -159,7 +159,7 @@ provider "aws" {
   vpc_id = aws_vpc.${vpcResourceName}.id${routes}
 
   tags = {
-    Name = "${rt.data.label}"
+${this.generateTags(rt.data.label)}
   }
 }`
   }
@@ -192,7 +192,7 @@ provider "aws" {
   vpc_id = aws_vpc.${vpcResourceName}.id
 
   tags = {
-    Name = "${igw.data.label}"
+${this.generateTags(igw.data.label)}
   }
 }`
   }
@@ -217,7 +217,7 @@ provider "aws" {
   domain = "vpc"
 
   tags = {
-    Name = "${nat.data.label}_eip"
+${this.generateTags(`${nat.data.label}_eip`)}
   }
 }
 
@@ -226,7 +226,7 @@ resource "aws_nat_gateway" "${resourceName}" {
   subnet_id     = aws_subnet.${subnetResourceName}.id
 
   tags = {
-    Name = "${nat.data.label}"
+${this.generateTags(nat.data.label)}
   }${dependsOn}
 }`
   }
@@ -246,7 +246,7 @@ resource "aws_nat_gateway" "${resourceName}" {
   subnet_id     = aws_subnet.${subnetResourceName}.id
 
   tags = {
-    Name = "${ec2.data.label}"
+${this.generateTags(ec2.data.label)}
   }
 }`
   }
@@ -261,5 +261,20 @@ resource "aws_nat_gateway" "${resourceName}" {
       .replace(/^[0-9]/, 'n_$&')  // Prefix numbers with 'n_'
       .replace(/_+/g, '_')        // Replace multiple underscores with single
       .replace(/^_|_$/g, '')      // Remove leading/trailing underscores
+  }
+
+  /**
+   * Generate tags with default InfraCrafter tag
+   */
+  generateTags(name, additionalTags = {}) {
+    const tags = {
+      Name: name,
+      GeneratedBy: 'InfraCrafter.com',
+      ...additionalTags
+    }
+    
+    return Object.entries(tags)
+      .map(([key, value]) => `    ${key} = "${value}"`)
+      .join('\n')
   }
 }
