@@ -146,7 +146,7 @@ const handleExport = async () => {
 }
 
 // Export as Terraform/Tofu JSON
-const handleExportTerraform = () => {
+const handleExportTerraform = async () => {
   // Prepare the data to send to the server
   const exportData = {
     nodes: props.nodes.map(node => ({
@@ -167,13 +167,42 @@ const handleExportTerraform = () => {
     timestamp: new Date().toISOString()
   }
 
-  // Log the JSON to console
-  console.log('=== TERRAFORM/TOFU EXPORT DATA ===')
-  console.log(exportData)
-  console.log('===================================')
-  
-  // Also log as a single-line JSON for easy copying
-  console.log('Single-line JSON:', JSON.stringify(exportData))
+  try {
+    console.log('Sending export request to backend...')
+    
+    // Send to backend server
+    const response = await fetch('http://localhost:3001/api/export/terraform', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(exportData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}`)
+    }
+
+    const result = await response.json()
+    
+    console.log('Terraform export successful:', result)
+    
+    // Download the generated Terraform file
+    if (result.terraform) {
+      const blob = new Blob([result.terraform], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.download = `infrastructure-${Date.now()}.tf`
+      link.href = url
+      link.click()
+      URL.revokeObjectURL(url)
+      
+      alert(`✅ Terraform code generated successfully!\n\nStats:\n- Nodes: ${result.stats.nodes}\n- Edges: ${result.stats.edges}\n- Lines: ${result.stats.lines}`)
+    }
+  } catch (error) {
+    console.error('Failed to export Terraform:', error)
+    alert('❌ Failed to export Terraform.\n\nPlease ensure the backend server is running:\n\ncd backend\nnpm start\n\nServer should be running on http://localhost:3001')
+  }
 }
 
 // Clear canvas
