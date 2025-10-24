@@ -181,8 +181,11 @@ const handleExportTerraform = async () => {
   try {
     console.log('Sending export request to backend...')
     
+    // Get API URL from environment variable
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+    
     // Send to backend server
-    const response = await fetch('http://localhost:3001/api/export/terraform', {
+    const response = await fetch(`${apiUrl}/api/export/terraform`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -228,21 +231,18 @@ const handleExportTerraform = async () => {
     console.error('Failed to export Terraform:', error)
     await Swal.fire({
       icon: 'error',
-      title: 'Oops! Connection Issue',
+      title: 'Server Error',
       html: `
         <p style="font-size: 16px; margin-bottom: 12px;">
-          We couldn't connect to the backend server. Don't worry, it's an easy fix! 😊
+          Unable to connect to the server. Please try again later.
         </p>
-        <div style="background-color: #fef2f2; padding: 12px; border-radius: 8px; border-left: 4px solid #ef4444; text-align: left;">
-          <p style="margin: 4px 0; color: #991b1b;"><strong>Quick fix:</strong></p>
-          <p style="margin: 4px 0; color: #991b1b; font-family: monospace; font-size: 14px;">cd backend</p>
-          <p style="margin: 4px 0; color: #991b1b; font-family: monospace; font-size: 14px;">npm start</p>
-          <p style="margin: 8px 0 4px 0; color: #991b1b; font-size: 14px;">The server should run on <strong>http://localhost:3001</strong></p>
-        </div>
+        <p style="font-size: 14px; color: #6b7280;">
+          If the problem persists, please contact support.
+        </p>
       `,
-      confirmButtonText: 'Got it!',
+      confirmButtonText: 'OK',
       confirmButtonColor: '#3b82f6',
-      width: '550px'
+      width: '450px'
     })
   }
 }
