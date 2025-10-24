@@ -205,9 +205,30 @@ ${this.generateTags(igw.data.label)}
     // NAT Gateway needs an EIP and should be in a public subnet
     const eipResourceName = `${resourceName}_eip`
     
-    // Find a subnet (preferably public) - for now, use first available subnet
-    const subnet = this.nodes.find(n => n.type === 'subnet')
-    const subnetResourceName = subnet ? this.sanitizeName(subnet.data.label || subnet.id) : 'subnet'
+    // Find a public subnet (one associated with a route table that has an IGW)
+    let publicSubnet = null
+    
+    // Get all subnets with route table associations
+    const subnetsWithRT = this.nodes.filter(n => n.type === 'subnet' && n.data.routeTableId)
+    
+    for (const subnet of subnetsWithRT) {
+      const rt = this.nodes.find(n => n.id === subnet.data.routeTableId)
+      if (rt) {
+        // Check if this route table has an IGW (making it a public route table)
+        const hasIGW = this.nodes.some(n => n.type === 'internetgateway' && n.parentNode === rt.id)
+        if (hasIGW) {
+          publicSubnet = subnet
+          break
+        }
+      }
+    }
+    
+    // Fallback to first subnet if no public subnet found
+    if (!publicSubnet) {
+      publicSubnet = this.nodes.find(n => n.type === 'subnet')
+    }
+    
+    const subnetResourceName = publicSubnet ? this.sanitizeName(publicSubnet.data.label || publicSubnet.id) : 'subnet'
     
     // Find the IGW for depends_on (if it exists)
     const igw = this.nodes.find(n => n.type === 'internetgateway')
