@@ -31,6 +31,7 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
+import Swal from 'sweetalert2'
 import Canvas from './components/Canvas.vue'
 import Toolbox from './components/Toolbox.vue'
 import Inspector from './components/Inspector.vue'
@@ -92,9 +93,61 @@ watch([nodes, edges], () => {
   saveState()
 }, { deep: true })
 
+// Show welcome message
+const showWelcomeMessage = async () => {
+  const hasSeenWelcome = localStorage.getItem('infracrafter-welcome-seen')
+  
+  if (!hasSeenWelcome) {
+    await Swal.fire({
+      imageUrl: '/logo.png',
+      imageWidth: 200,
+      imageHeight: 200,
+      imageAlt: 'InfraCrafter Logo',
+      title: 'Welcome to InfraCrafter! 🎉',
+      html: `
+        <div style="text-align: left; padding: 0 20px;">
+          <p style="font-size: 16px; margin-bottom: 16px; text-align: center;">
+            We're excited to have you here! 🚀
+          </p>
+          
+          <div style="background-color: #fff3cd; padding: 12px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #ffc107; text-align: center;">
+            <p style="margin: 0; color: #856404; font-size: 14px; font-weight: 600;">
+              ⚠️ Currently in <strong>Alpha Stage</strong> - Expect updates and improvements!
+            </p>
+          </div>
+          
+          <div style="background-color: #f0f9ff; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3b82f6;">
+            <p style="margin: 8px 0; color: #1e40af; font-size: 15px;">
+              ✨ <strong>Free Forever</strong> - No hidden costs, no subscriptions
+            </p>
+            <p style="margin: 8px 0; color: #1e40af; font-size: 15px;">
+              🌟 <strong>Soon Open Source</strong> - Join our community on GitHub
+            </p>
+            <p style="margin: 8px 0; color: #1e40af; font-size: 15px;">
+              🚀 <strong>More Modules Coming</strong> - Security Groups, Load Balancers, RDS, and more!
+            </p>
+          </div>
+          
+          <p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 16px;">
+            Start building your AWS infrastructure visually and export production-ready Open Tofu | Terraform code instantly!
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'Let\'s Get Started! 🎨',
+      confirmButtonColor: '#10b981',
+      width: '600px',
+      backdrop: true,
+      allowOutsideClick: true
+    })
+    
+    localStorage.setItem('infracrafter-welcome-seen', 'true')
+  }
+}
+
 // Load state on mount
 onMounted(() => {
   loadState()
+  showWelcomeMessage()
 })
 
 // Generate unique ID
